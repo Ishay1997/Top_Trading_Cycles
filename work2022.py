@@ -1,0 +1,545 @@
+import operator
+import dictionary as dictionary
+import networkx as nx
+# the Kosaraju’s algorithm i copy from https://www.geeksforgeeks.org/strongly-connected-components/
+
+
+def make_graph(PreferenceLists: dictionary, graph):
+    """
+    O(n^2)
+    Update all the edges between agents and houses,with the PreferenceLists.
+    :param PreferenceLists:dictionary that contain a order list houses from top to low choices prefer for all agents.
+     keys = agent, values = prefer list of houses.
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :return: graph after update the edges.
+    >>> PreferenceLists = {1: [{'g', 'c'}],2: [{'f', 'g', 'd'}],3: [{'b', 'e'}, 'c'],4: ['e'],5: ['d'],6: ['b', 'f'],7: ['a']}
+    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd',5: 'e',6: 'f',7: 'g'}
+    >>> makeGraph = make_graph_begin(PreferenceLists, house,  nx.DiGraph())
+    >>> makeGraph.remove_node(2)
+    >>> makeGraph.remove_node('b')
+    >>> make_graph(PreferenceLists, makeGraph)
+    {1: {'c': {}, 'g': {}}, 'c': {3: {}}, 'g': {7: {}}, 'f': {6: {}}, 'd': {4: {}}, 3: {'e': {}}, 'e': {5: {}}, 4: {'e': {}}, 5: {'d': {}}, 6: {'f': {}}, 7: {'a': {}}, 'a': {1: {}}}
+    """
+    newGraph = graph.copy()
+    for i in newGraph:
+        if i in PreferenceLists.keys():
+            flag = 1
+            m = 0
+            while flag:
+                for j in PreferenceLists[i][m]:
+                    if j in graph:
+                        if not graph[i].__contains__(j):
+                            graph.add_edge(i, j)
+                        flag = 0
+                if flag:
+                    m = m + 1
+    return graph
+
+
+def make_graph_begin(PreferenceLists: dictionary, owner_house: dictionary, graph):
+    """
+    O(n^2)
+    This func make graph with agents and houses nodes and connect between them with edges.
+    The edges are between agents to the houses they prefer and between the house to agent owner.
+    :param PreferenceLists:dictionary that give a order list from top to low choices prefer houses.
+    keys = agent, values = prefer list of houses.
+    :param owner_house:dictionary that connect between the houses to there owners.
+     keys = agent, values = houses.
+    :param graph:empty graph.
+    :return:graph after add al the agents and houses and update the edges.
+
+
+    >>> PreferenceLists = {1: [{'a', 'b', 'c'}], 2: [{'a', 'b', 'c'}], 3: [{'a', 'b', 'c'}]}
+    >>> house = {1: 'a', 2: 'b', 3: 'c'}
+    >>> graph = nx.DiGraph()
+    >>> make_graph_begin(PreferenceLists, house, graph)
+    {1: {'b': {}, 'a': {}, 'c': {}}, 'b': {2: {}}, 'a': {1: {}}, 'c': {3: {}}, 2: {'b': {}, 'a': {}, 'c': {}}, 3: {'b': {}, 'a': {}, 'c': {}}}
+
+
+    >>> PreferenceLists = {1: ['a', 'b'],2: ['b', 'a'],3: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c'}
+    >>> graph = nx.DiGraph()
+    >>> make_graph_begin(PreferenceLists, house, graph)
+    {1: {'a': {}}, 'a': {1: {}}, 2: {'b': {}}, 'b': {2: {}}, 3: {'c': {}}, 'c': {3: {}}}
+
+
+    >>> PreferenceLists = {1: [{'g', 'c'}],2: [{'f', 'g', 'd'}],3: [{'b', 'e'}, 'c'],4: ['e'],5: ['d'],6: ['b', 'f'],7: ['a']}
+    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd',5: 'e',6: 'f',7: 'g'}
+    >>> graph = nx.DiGraph()
+    >>> make_graph_begin(PreferenceLists, house, graph)
+    {1: {'g': {}, 'c': {}}, 'g': {7: {}}, 'c': {3: {}}, 2: {'g': {}, 'd': {}, 'f': {}}, 'd': {4: {}}, 'f': {6: {}}, 3: {'e': {}, 'b': {}}, 'e': {5: {}}, 'b': {2: {}}, 4: {'e': {}}, 5: {'d': {}}, 6: {'b': {}}, 7: {'a': {}}, 'a': {1: {}}}
+
+
+    >>> PreferenceLists = {1: [{'a', 'c'}],2: ['c'],3: ['d'],4: [{'b', 'd'}]}
+    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> make_graph_begin(PreferenceLists, house, graph)
+    {1: {'a': {}, 'c': {}}, 'a': {1: {}}, 'c': {3: {}}, 2: {'c': {}}, 3: {'d': {}}, 'd': {4: {}}, 4: {'b': {}, 'd': {}}, 'b': {2: {}}}
+
+
+    >>> PreferenceLists = {1: ['a', 'b', 'c', 'd'],2: ['a', 'b', 'c', 'd'],3: ['a', 'b', 'c', 'd'],4: ['a', 'b', 'c', 'd']}
+    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> make_graph_begin(PreferenceLists, house, graph)
+    {1: {'a': {}}, 'a': {1: {}}, 2: {'a': {}}, 3: {'a': {}}, 4: {'a': {}}, 'b': {2: {}}, 'c': {3: {}}, 'd': {4: {}}}
+      """
+    for i in PreferenceLists.keys():
+        for j in PreferenceLists[i][0]:
+            graph.add_edge(i, j)
+
+    for i in owner_house.keys():
+        graph.add_edge(owner_house[i], i)
+    return graph
+
+
+def make_stack(graph, v, visited: list, stack: list):
+    visited.append(v)
+    for i in graph[v]:
+        if i not in visited:
+            make_stack(graph, i, visited, stack)
+    stack.append(v)
+
+
+def transpose_graph(graph):
+    """
+    Transpose the edges.
+    if G contains an edge (u, v) then the transpose of G contains an edge (v, u) .
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :return:graph after transpose.
+
+    >>> graph = {1: {'a': {}}, 2: {'b': {}}, 'c': {3: {}}}
+    >>> transpose_graph(graph)
+    {'a': {1: {}}, 1: {}, 'b': {2: {}}, 2: {}, 3: {'c': {}}, 'c': {}}
+
+    >>> graph = {1: {'a': {}, 'b' : {}}, 2: {'b': {}, 'a': {}}, 'c': {3: {}}}
+    >>> transpose_graph(graph)
+    {'a': {1: {}, 2: {}}, 1: {}, 'b': {1: {}, 2: {}}, 2: {}, 3: {'c': {}}, 'c': {}}
+    """
+    TransposeG = nx.DiGraph()
+    for i in graph:
+        for j in graph[i]:
+            TransposeG.add_edge(j, i)
+    return TransposeG
+
+
+def SCC(graph, v, visited: list, SCC_list):
+    visited.append(v)
+    SCC_list.append(v)
+
+    for i in graph[v]:
+        if i not in visited:
+            SCC(graph, i, visited, SCC_list)
+
+    return SCC_list
+
+
+def get_all_values(owner_house: dictionary, PreferenceLists: dictionary):
+    """
+    O(n^2*log(n))
+    :param owner_house:dictionary that connect between the houses to there owners.
+     keys = agent, values = houses.
+    :param PreferenceLists:dictionary with agent's keys and the houses values with number how much the agent appraiser the houses.
+     keys = agent, values = houses with number.
+    :return:call print_SCCs func with order PreferenceLists and owner houses.
+    """
+    ans = {}
+    global x
+    List = []
+    ListName = []
+    # run over all the agents.
+    for x in PreferenceLists:
+        # sort the preferences by the values that get all houses by this agent/
+        sorted_x = sorted(PreferenceLists[x].items(),  key=operator.itemgetter(1), reverse=True)
+        ListName.append(x)
+        List.append(sorted_x)
+    # run over all sorted preferences.
+    for i in range(len(List)):
+        ListAns = []
+        ListAns.append(List[i][0][0])
+        for j in range(len(List[i])-1):
+            # if the house i add to the list have same value to the last combine them to one list.
+            if List[i][j][1].__eq__(List[i][j+1][1]):
+                if len(ListAns) > 0:
+                    x = ListAns.pop()
+                if type(x) is list:
+                    x.append(List[i][j + 1][0])
+                    ListAns.append(x)
+                else:
+                    ListAns.append([x, List[i][j + 1][0]])
+            else:
+                ListAns.append(List[i][j + 1][0])
+        # ListAns.reverse()
+        ans[ListName[i]] = ListAns
+    return print_SCCs(owner_house, ans)
+
+
+def if_all_satisfied(graph, owner_house: dictionary):
+    """
+    O(n)
+    check if there  aren't jealous agents in the graph return the owner_house.
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
+    :return:true if all the agents in the graph are satisfied, else false.
+
+    >>> PreferenceLists = {1: [{'a', 'b', 'c'}],2: [{'a', 'b', 'c'}],3: [{'a', 'b', 'c'}]}
+    >>> house = {1: 'a',2: 'b',3: 'c'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>>if_all_satisfied(graph, house)
+    1
+
+    >>> PreferenceLists = {1: [{'b'}],2: [{'a', 'b', 'c'}],3: [{'a', 'b', 'c'}]}
+    >>> house = {1: 'a',2: 'b',3: 'c'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>>if_all_satisfied(graph, house)
+    0
+    """
+    jealous = []
+    for li in graph:
+        if owner_house.keys().__contains__(li) and not graph.has_edge(li, owner_house[li]):
+            jealous.append(li)
+    if not len(jealous):
+        return 1
+    return 0
+
+
+def if_SCC_change_owners(graph, owner_house: dictionary):
+    """
+    this func run ove all SCC in the graph and replace the houses owners in this SCC(that every agents in SCC will be satisfied) .
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
+    :return: update graph.
+
+    >>> PreferenceLists = {1: ['b'], 2: ['a']}
+    >>> house = {1: 'a', 2: 'b'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>> if_SCC_change_owners(graph, house)
+    {1: 'b', 2: 'a'}
+
+    >>> PreferenceLists = {1: ['b'],2: ['a'],3: ['d'],4: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>> if_SCC_change_owners(graph, house)
+    {1: 'b', 2: 'a', 3: 'd', 4: 'c'}
+    """
+    HostHouse = []
+    for i in owner_house.values():
+        HostHouse.append(i)
+
+    stack = []
+    visited = []
+
+    for i in graph:
+        if i not in visited:
+            visited.append(i)
+            make_stack(graph, i, visited, stack)
+
+    gr = transpose_graph(graph)
+    visited = []
+    HostHouse = []
+    for o in owner_house.values():
+        HostHouse.append(o)
+    while stack:
+        i = stack.pop()
+        if not visited.__contains__(i):
+            ListOfLists = []
+            List = SCC(gr, i, visited, ListOfLists)
+            if len(List) > 1:
+                length = len(List)
+                for mmm in range(length):
+                    if HostHouse.__contains__(List[mmm]):
+                        owner_house[List[(mmm + 1) % len(List)]] = List[mmm]
+                        graph.remove_edge(List[mmm], List[mmm - 1])
+                        graph.add_edge(List[mmm], List[(mmm + 1) % len(List)])
+
+
+def find_satisfied_SCC(graph, owner_house: dictionary, PreferenceLists: dictionary):
+    """
+    find SCC that all there agents are satisfied and point only to this SCC, if there is this SCC remove all the
+    agents and houses that find in this SCC from the graph.apdate all the connected between the agents and houses and do
+    this again until there is no END SCC.
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
+    :param PreferenceLists:dictionary with agent's keys and the values are order list houses from top to low choices.
+    :return: update graph.
+
+
+    >>> PreferenceLists = {1: ['a', 'b'], 2: ['b', 'a'], 3: ['d'], 4: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>> find_satisfied_SCC(graph, house, PreferenceLists )
+    {3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+
+    >>> PreferenceLists = {1: ['b'], 2: ['a'], 3: [{'c','d'}], 4: [{'c','d'}]}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>> find_satisfied_SCC(graph, house, PreferenceLists )
+    {1: {'b': {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}}
+
+    """
+    change = 1
+    while change:
+        change = 0
+        stack = []
+        visited = []
+        # O(n^2)
+        # make stack with all agents.
+        for i in graph:
+            if i not in visited:
+                visited.append(i)
+                make_stack(graph, i, visited, stack)
+        # O(n^2)
+        # transpose the graph
+        gr = transpose_graph(graph)
+
+        visited = []
+        while stack and not change:
+            i = stack.pop()
+            if i not in visited:
+                if owner_house.keys().__contains__(i):
+                    ListOfLists = []
+                    # Strongly Connected Components
+                    List = SCC(gr, i, visited, ListOfLists)
+                    if len(List) > 1:
+                        flag = 1
+                        # check if List is "final" SCC
+                        for li in List:
+                            # if all node in List point doesn't point outside of the SCC.
+                            for nodefromli in graph[li]:
+                                if not List.__contains__(nodefromli):
+                                    flag = 0
+                            # if there is agent in SCC list that jealous.
+                            if owner_house.keys().__contains__(li) and not graph.has_edge(li, owner_house[li]):
+                                flag = 0
+                        # if SCC "final".
+                        if flag == 1:
+                            for i in List:
+                                graph.remove_node(i)
+                            graph = make_graph(PreferenceLists, graph)
+    return graph
+
+
+def connect_jealous_agents_to_there_best(jealous: list, graph):
+    """
+    # O(n^2)
+    this func keep only one edge between all jealous agents to the house(the house that have already edge and also
+    the house has the min "aski" value).
+    :param jealous:list with all jealous agents.
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :return: update graph.
+
+
+    >>> PreferenceLists = {1: ['a', 'b'], 2: ['b', 'a'], 3: ['d'], 4: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>> connect_jealous_agents_to_there_best([ 3, 4, 'd', 'c'], graph)
+    {1: {'a': {}}, 'a': {1: {}}, 2: {'b': {}}, 'b': {2: {}}, 3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+
+    >>> PreferenceLists = {1: [{'b','c','d'}], 2: [{'a','c','d'}], 3: [{'c','d'}], 4: [{'c','d'}]}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = make_graph_begin(PreferenceLists, house, graph)
+    >>> connect_jealous_agents_to_there_best([ 1, 2, 'b', 'a'], graph)
+    {1: {'b': {}}, 'c': {3: {}}, 'd': {4: {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}, 3: {'c': {}, 'd': {}},
+     4: {'c': {}, 'd': {}}}
+    """
+    # O(n)
+    # run over all the jealous agents.
+    for je in jealous:
+        MinHouse = min(graph[je].keys())
+        graphlllist = []
+        for i in graph[je]:
+            graphlllist.append(i)
+        # O(n)
+        # delete all the edges that go from jealous agents outside then MinHouse.
+        for node in graphlllist:
+            if node != MinHouse:
+                if graph.has_edge(je, node):
+                    graph.remove_edge(je, node)
+    return graph
+
+
+def connect_satisfied_agents_to_there_best(graph, owner_house: dictionary, labeled: list):
+    """
+    O(n^2)
+     keep only one edge between all satisfied agents to labeled agent.
+    :param graph:diGraph with agents and houses nodes and edges that connect between them.
+    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
+    :param labeled:in begin it is all the jealous agents.and after that all the agents that connect to this labeled add
+    to labeld.
+    :return: update graph.
+
+    >>> PreferenceLists = {1: ['a', 'b'], 2: ['b', 'a'], 3: ['d'], 4: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = {3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+    >>> connect_satisfied_agents_to_there_best(graph, house, [ 3, 4, 'd', 'c'])
+    {3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+
+    >>> PreferenceLists = {1: [{'b','c','d'}], 2: [{'a','c','d'}], 3: [{'c','d'}], 4: [{'c','d'}]}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> graph = nx.DiGraph()
+    >>> graph = {1: {'b': {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}}
+    >>> connect_satisfied_agents_to_there_best(graph, house, [ 1, 2, 'b', 'a'])
+    {1: {'b': {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}}
+    """
+
+    un_labeled = []
+    ney_labeled = []
+    labeled_houses = []
+    # O(n)
+    # put all the non labeled agents as un_labeled.
+    for i in graph:
+        if not labeled.__contains__(i):
+            un_labeled.append(i)
+    #  run until all the agents are labeled.
+    while un_labeled:
+        # keep all the Neighbors of labeled agents at ney_labeled (they are un_labeled).
+        for i in labeled:
+            if owner_house.keys().__contains__(i):
+                house = owner_house[i]
+                for j in graph:
+                    if owner_house.keys().__contains__(j) and un_labeled.__contains__(j) and graph.has_edge(j, house) and not ney_labeled.__contains__(j):
+                        ney_labeled.append(j)
+        m = 0
+        ney_labeled.sort()
+        ney_labeled.reverse()
+        for i in range(len(labeled)):
+            if not owner_house.keys().__contains__(labeled[i - m]):
+                labeled_houses.append(labeled[i - m])
+                labeled.remove(labeled[i - m])
+                m = m + 1
+        labeled.sort()
+        labeled.reverse()
+        smallest_ney_labeled = ney_labeled.pop()
+        listcheck = []
+
+        # all the labeled houses put in list and sort.
+        for i in graph[smallest_ney_labeled]:
+            if labeled_houses.__contains__(i):
+                listcheck.append(i)
+        listcheck.sort()
+        listcheck.reverse()
+        min_house = listcheck.pop()
+        graphlllist = []
+        # delete all the edges between the Neighbors agent with the smallest value in the labeled list outside from
+        # min_house he connect to in the labeled houses.
+        for i in graph[smallest_ney_labeled]:
+            graphlllist.append(i)
+        for node in graphlllist:
+            if node != min_house:
+                if graph.has_edge(smallest_ney_labeled, node):
+                    graph.remove_edge(smallest_ney_labeled, node)
+        # remove smallest_ney_labeled from un_labeled list and add to labeled list.
+        labeled.append(smallest_ney_labeled)
+        labeled_houses.append(owner_house[smallest_ney_labeled])
+        un_labeled.remove(smallest_ney_labeled)
+        un_labeled.remove(owner_house[smallest_ney_labeled])
+    return graph
+
+
+def print_SCCs(owner_house: dictionary, PreferenceLists: dictionary):
+    """
+    the main fun that call all the func and return the owner houses after do this algo.
+    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
+    :param PreferenceLists:dictionary with agent's keys and the values are order list houses from top to low choices.
+    :return:owner houses after this algo.
+    >>> PreferenceListsValues = {1: {'a': 3, 'b': 3}, 2: {'a': 5, 'b': 1}}
+    >>> PreferenceLists = {1: [{'a', 'b'}], 2: ['a', 'b']}
+    >>> house = {1: 'a', 2: 'b'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a'}
+
+
+    >>> PreferenceListsValues = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'d':3}}
+    >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['d']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+
+    >>> PreferenceListsValues = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'a':3}}
+    >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['a']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
+
+
+    >>> PreferenceListsValues = {1: {'b': 3}, 2: {'a': 5}, 3:{'c':9}}
+    >>> PreferenceLists = {1: ['b'], 2: ['a'], 3: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a', 3: 'c'}
+
+    >>> PreferenceListsValues = {1: {'g': 3, 'c': 3}, 2: {'f': 2, 'g': 2, 'd': 2}, 3: {'b': 9, 'e':9, 'c': 3}, 4: {'e': 1}, 5: {'d': 5},6: {'b': 1, 'f': 0}, 7:{'a':3}}
+    >>> PreferenceLists = {1: [{'g', 'c'}], 2: [{'f', 'g', 'd'}], 3: [{'b', 'e'}, 'c'], 4: ['e'], 5: ['d'], 6: ['b', 'f'], 7: ['a']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
+
+
+
+    >>> PreferenceListsValues = {1: {'a': 3, 'c': 3}, 2: {'a': 2, 'b': 2, 'd': 2}, 3: {'c': 9, 'e':9}, 4: {'c': 1}, 5: {'a': 5, 'f': 5},6: {'b': 1}}
+    >>> PreferenceLists = {1: [{'a', 'c'}],2: [{'a', 'b', 'd'}], 3: [{'c', 'e'}], 4: ['c'], 5: [{'a', 'f'}], 6: ['b']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
+
+    """
+    graph = nx.DiGraph()
+    graph = make_graph_begin(PreferenceLists, owner_house, graph)
+    # run until there is no nodes in the graph
+    while len(graph) != 0:
+        jealous = []
+
+        graph = make_graph(PreferenceLists, graph)
+
+        if if_all_satisfied(graph, owner_house):
+            return owner_house
+
+        graph = find_satisfied_SCC(graph, owner_house, PreferenceLists)
+        # keep all the jealous agens in list.
+        for li in graph:
+            if owner_house.keys().__contains__(li) and not graph.has_edge(li, owner_house[li]):
+                jealous.append(li)
+
+        # if no agent in the graph jealous return.
+        if not jealous:
+            return owner_house
+
+        graph = find_satisfied_SCC(graph, owner_house, PreferenceLists)
+        # if_satisfied_and_point_only_to_himself(graph, owner_house, PreferenceLists, jealous)
+        labeled = []
+        # connect jealous people to the min house they have edge to.
+        graph = connect_jealous_agents_to_there_best(jealous, graph)
+        for je in jealous:
+            labeled.append(je)
+            labeled.append(owner_house[je])
+        # connect satisfied people to label agent.
+        graph = connect_satisfied_agents_to_there_best(graph, owner_house, labeled)
+        # Change houses owners in SCC.
+        if_SCC_change_owners(graph, owner_house)
+
+    return owner_house
+
+if __name__ == '__main__':
+    import doctest
+    doctest.run_docstring_examples(make_graph_begin, globals())
+    doctest.run_docstring_examples(make_graph, globals())
+    doctest.run_docstring_examples(if_SCC_change_owners, globals())
+    doctest.run_docstring_examples(print_SCCs, globals())
+    doctest.run_docstring_examples(connect_satisfied_agents_to_there_best, globals())
+    doctest.run_docstring_examples(connect_jealous_agents_to_there_best, globals())
+    doctest.run_docstring_examples(find_satisfied_SCC, globals())
+    # doctest.run_docstring_examples(if_all_satisfied, globals())
+    doctest.run_docstring_examples(transpose_graph, globals())
+    doctest.run_docstring_examples(get_all_values, globals())
+
+
+
+
