@@ -1,8 +1,31 @@
+import fairpy
 import operator
 import dictionary as dictionary
 import networkx as nx
+import unittest
+
+
+from typing import Dict
+
 # the Kosaraju’s algorithm i copy from https://www.geeksforgeeks.org/strongly-connected-components/
 
+def stringify(d):
+    """
+    Returns a canonical string representation of the given dict,
+    by sorting its items recursively.
+    This is especially useful in doctests::
+    >>> stringify({"a":1,"b":2,"c":{"e":4,"d":3}})
+    '{a:1, b:2, c:{d:3, e:4}}'
+    """
+    d2 = {}
+    # {1: {'c': {}, 'b': {}, 'a': {}}, 'c': {3: {}}, 'b': {2: {}}, 'a': {1: {}}, 2: {'c': {}, 'b': {}, 'a': {}}, 3: {'c': {}, 'b': {}, 'a': {}}}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            d2[k] = stringify(v)
+        else:
+            d2[k] =str (v)
+
+    return "{" + ", ".join(["{}:{}".format(k, v) for k, v in sorted(d2.items())]) + "}"
 
 def make_graph(PreferenceLists: dictionary, graph):
     """
@@ -12,14 +35,18 @@ def make_graph(PreferenceLists: dictionary, graph):
      keys = agent, values = prefer list of houses.
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
     :return: graph after update the edges.
-    >>> PreferenceLists = {1: [{'g', 'c'}],2: [{'f', 'g', 'd'}],3: [{'b', 'e'}, 'c'],4: ['e'],5: ['d'],6: ['b', 'f'],7: ['a']}
-    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd',5: 'e',6: 'f',7: 'g'}
-    >>> makeGraph = make_graph_begin(PreferenceLists, house,  nx.DiGraph())
-    >>> makeGraph.remove_node(2)
+    >>> PreferenceLists = {'1': [{'g', 'c'}],'2': [{'f', 'g', 'd'}],'3': [{'b', 'e'}, 'c'],'4': ['e'],'5': ['d'],'6': ['b', 'f'],'7': ['a']}
+    >>> house = {'1': 'a','2': 'b','3': 'c','4': 'd','5': 'e','6': 'f','7': 'g'}
+    >>> makeGraph = make_graph_begin(PreferenceLists, house)
+    >>> makeGraph.remove_node('2')
     >>> makeGraph.remove_node('b')
-    >>> make_graph(PreferenceLists, makeGraph)
-    {1: {'c': {}, 'g': {}}, 'c': {3: {}}, 'g': {7: {}}, 'f': {6: {}}, 'd': {4: {}}, 3: {'e': {}}, 'e': {5: {}}, 4: {'e': {}}, 5: {'d': {}}, 6: {'f': {}}, 7: {'a': {}}, 'a': {1: {}}}
+    >>> G = make_graph(PreferenceLists, makeGraph)
+    >>> G = nx.to_dict_of_dicts(G, edge_data=None)
+    >>> stringify(G)
+    '{1:{c:{}, g:{}}, 3:{e:{}}, 4:{e:{}}, 5:{d:{}}, 6:{f:{}}, 7:{a:{}}, a:{1:{}}, c:{3:{}}, d:{4:{}}, e:{5:{}}, f:{6:{}}, g:{7:{}}}'
     """
+
+
     newGraph = graph.copy()
     for i in newGraph:
         if i in PreferenceLists.keys():
@@ -36,11 +63,11 @@ def make_graph(PreferenceLists: dictionary, graph):
     return graph
 
 
-def make_graph_begin(PreferenceLists: dictionary, owner_house: dictionary, graph):
+def make_graph_begin(PreferenceLists: dictionary, owner_house: dictionary):
     """
     O(n^2)
     This func make graph with agents and houses nodes and connect between them with edges.
-    The edges are between agents to the houses they prefer and between the house to agent owner.
+    The edges connect between agents to the houses they prefer and between the houses to agent owners.
     :param PreferenceLists:dictionary that give a order list from top to low choices prefer houses.
     keys = agent, values = prefer list of houses.
     :param owner_house:dictionary that connect between the houses to there owners.
@@ -48,45 +75,48 @@ def make_graph_begin(PreferenceLists: dictionary, owner_house: dictionary, graph
     :param graph:empty graph.
     :return:graph after add al the agents and houses and update the edges.
 
+    >>> PreferenceLists = {'1': ['a', 'b'],'2': ['b', 'a'],'3': ['c']}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c'}
+    >>> G = make_graph_begin(PreferenceLists, house)
+    >>> G = nx.to_dict_of_dicts(G, edge_data=None)
+    >>> stringify(G)
+    '{1:{a:{}}, 2:{b:{}}, 3:{c:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}}'
 
-    >>> PreferenceLists = {1: [{'a', 'b', 'c'}], 2: [{'a', 'b', 'c'}], 3: [{'a', 'b', 'c'}]}
-    >>> house = {1: 'a', 2: 'b', 3: 'c'}
-    >>> graph = nx.DiGraph()
-    >>> make_graph_begin(PreferenceLists, house, graph)
-    {1: {'b': {}, 'a': {}, 'c': {}}, 'b': {2: {}}, 'a': {1: {}}, 'c': {3: {}}, 2: {'b': {}, 'a': {}, 'c': {}}, 3: {'b': {}, 'a': {}, 'c': {}}}
+    >>> PreferenceLists = {'1': [{'a', 'b', 'c'}], '2': [{'a', 'b', 'c'}], '3': [{'a', 'b', 'c'}]}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c'}
+    >>> G = make_graph_begin(PreferenceLists, house)
+    >>> G = nx.to_dict_of_dicts(G, edge_data=None)
+    >>> stringify(G)
+    '{1:{a:{}, b:{}, c:{}}, 2:{a:{}, b:{}, c:{}}, 3:{a:{}, b:{}, c:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}}'
 
+    >>> PreferenceLists = {'1': [{'g', 'c'}],'2': [{'f', 'g', 'd'}],'3': [{'b', 'e'}, 'c'],'4': ['e'],'5': ['d'],'6': ['b', 'f'],'7': ['a']}
+    >>> house = {'1': 'a','2': 'b','3': 'c','4': 'd','5': 'e','6': 'f','7': 'g'}
+    >>> G = make_graph_begin(PreferenceLists, house)
+    >>> G = nx.to_dict_of_dicts(G, edge_data=None)
+    >>> stringify(G)
+    '{1:{c:{}, g:{}}, 2:{d:{}, f:{}, g:{}}, 3:{b:{}, e:{}}, 4:{e:{}}, 5:{d:{}}, 6:{b:{}}, 7:{a:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}, d:{4:{}}, e:{5:{}}, f:{6:{}}, g:{7:{}}}'
 
-    >>> PreferenceLists = {1: ['a', 'b'],2: ['b', 'a'],3: ['c']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c'}
-    >>> graph = nx.DiGraph()
-    >>> make_graph_begin(PreferenceLists, house, graph)
-    {1: {'a': {}}, 'a': {1: {}}, 2: {'b': {}}, 'b': {2: {}}, 3: {'c': {}}, 'c': {3: {}}}
+    >>> PreferenceLists = {'1': [{'a', 'c'}],'2': ['c'],'3': ['d'],'4': [{'b', 'd'}]}
+    >>> house = {'1': 'a','2': 'b','3': 'c','4': 'd'}
+    >>> G = make_graph_begin(PreferenceLists, house)
+    >>> G = nx.to_dict_of_dicts(G, edge_data=None)
+    >>> stringify(G)
+    '{1:{a:{}, c:{}}, 2:{c:{}}, 3:{d:{}}, 4:{b:{}, d:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}, d:{4:{}}}'
 
-
-    >>> PreferenceLists = {1: [{'g', 'c'}],2: [{'f', 'g', 'd'}],3: [{'b', 'e'}, 'c'],4: ['e'],5: ['d'],6: ['b', 'f'],7: ['a']}
-    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd',5: 'e',6: 'f',7: 'g'}
-    >>> graph = nx.DiGraph()
-    >>> make_graph_begin(PreferenceLists, house, graph)
-    {1: {'g': {}, 'c': {}}, 'g': {7: {}}, 'c': {3: {}}, 2: {'g': {}, 'd': {}, 'f': {}}, 'd': {4: {}}, 'f': {6: {}}, 3: {'e': {}, 'b': {}}, 'e': {5: {}}, 'b': {2: {}}, 4: {'e': {}}, 5: {'d': {}}, 6: {'b': {}}, 7: {'a': {}}, 'a': {1: {}}}
-
-
-    >>> PreferenceLists = {1: [{'a', 'c'}],2: ['c'],3: ['d'],4: [{'b', 'd'}]}
-    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> make_graph_begin(PreferenceLists, house, graph)
-    {1: {'a': {}, 'c': {}}, 'a': {1: {}}, 'c': {3: {}}, 2: {'c': {}}, 3: {'d': {}}, 'd': {4: {}}, 4: {'b': {}, 'd': {}}, 'b': {2: {}}}
-
-
-    >>> PreferenceLists = {1: ['a', 'b', 'c', 'd'],2: ['a', 'b', 'c', 'd'],3: ['a', 'b', 'c', 'd'],4: ['a', 'b', 'c', 'd']}
-    >>> house = {1: 'a',2: 'b',3: 'c',4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> make_graph_begin(PreferenceLists, house, graph)
-    {1: {'a': {}}, 'a': {1: {}}, 2: {'a': {}}, 3: {'a': {}}, 4: {'a': {}}, 'b': {2: {}}, 'c': {3: {}}, 'd': {4: {}}}
+    >>> PreferenceLists = {'1': ['a', 'b', 'c', 'd'],'2': ['a', 'b', 'c', 'd'],'3': ['a', 'b', 'c', 'd'],'4': ['a', 'b', 'c', 'd']}
+    >>> house = {'1': 'a','2': 'b','3': 'c','4': 'd'}
+    >>> G = make_graph_begin(PreferenceLists, house)
+    >>> G = nx.to_dict_of_dicts(G, edge_data=None)
+    >>> stringify(G)
+    '{1:{a:{}}, 2:{a:{}}, 3:{a:{}}, 4:{a:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}, d:{4:{}}}'
       """
+    # add edge between the agents to the houses they prefer.
+    graph = nx.DiGraph()
     for i in PreferenceLists.keys():
         for j in PreferenceLists[i][0]:
             graph.add_edge(i, j)
 
+    # add edge between houses to the agent it belong to.
     for i in owner_house.keys():
         graph.add_edge(owner_house[i], i)
     return graph
@@ -107,13 +137,18 @@ def transpose_graph(graph):
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
     :return:graph after transpose.
 
-    >>> graph = {1: {'a': {}}, 2: {'b': {}}, 'c': {3: {}}}
-    >>> transpose_graph(graph)
-    {'a': {1: {}}, 1: {}, 'b': {2: {}}, 2: {}, 3: {'c': {}}, 'c': {}}
+    >>> graph = {'1': {'a': {}}, '2': {'b': {}}, 'c': {'3': {}}}
+    >>> graph = transpose_graph(graph)
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{}, 2:{}, 3:{c:{}}, a:{1:{}}, b:{2:{}}, c:{}}'
 
-    >>> graph = {1: {'a': {}, 'b' : {}}, 2: {'b': {}, 'a': {}}, 'c': {3: {}}}
-    >>> transpose_graph(graph)
-    {'a': {1: {}, 2: {}}, 1: {}, 'b': {1: {}, 2: {}}, 2: {}, 3: {'c': {}}, 'c': {}}
+
+    >>> graph = {'1': {'a': {}, 'b' : {}}, '2': {'b': {}, 'a': {}}, 'c': {'3': {}}}
+    >>> graph = transpose_graph(graph)
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{}, 2:{}, 3:{c:{}}, a:{1:{}, 2:{}}, b:{1:{}, 2:{}}, c:{}}'
     """
     TransposeG = nx.DiGraph()
     for i in graph:
@@ -133,97 +168,54 @@ def SCC(graph, v, visited: list, SCC_list):
     return SCC_list
 
 
-def get_all_values(owner_house: dictionary, PreferenceLists: dictionary):
-    """
-    O(n^2*log(n))
-    :param owner_house:dictionary that connect between the houses to there owners.
-     keys = agent, values = houses.
-    :param PreferenceLists:dictionary with agent's keys and the houses values with number how much the agent appraiser the houses.
-     keys = agent, values = houses with number.
-    :return:call print_SCCs func with order PreferenceLists and owner houses.
-    """
-    ans = {}
-    global x
-    List = []
-    ListName = []
-    # run over all the agents.
-    for x in PreferenceLists:
-        # sort the preferences by the values that get all houses by this agent/
-        sorted_x = sorted(PreferenceLists[x].items(),  key=operator.itemgetter(1), reverse=True)
-        ListName.append(x)
-        List.append(sorted_x)
-    # run over all sorted preferences.
-    for i in range(len(List)):
-        ListAns = []
-        ListAns.append(List[i][0][0])
-        for j in range(len(List[i])-1):
-            # if the house i add to the list have same value to the last combine them to one list.
-            if List[i][j][1].__eq__(List[i][j+1][1]):
-                if len(ListAns) > 0:
-                    x = ListAns.pop()
-                if type(x) is list:
-                    x.append(List[i][j + 1][0])
-                    ListAns.append(x)
-                else:
-                    ListAns.append([x, List[i][j + 1][0]])
-            else:
-                ListAns.append(List[i][j + 1][0])
-        # ListAns.reverse()
-        ans[ListName[i]] = ListAns
-    return print_SCCs(owner_house, ans)
-
-
 def if_all_satisfied(graph, owner_house: dictionary):
     """
     O(n)
-    check if there  aren't jealous agents in the graph return the owner_house.
+    check if there aren't jealous agents in the graph return 1 else 0.
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
     :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
     :return:true if all the agents in the graph are satisfied, else false.
 
-    >>> PreferenceLists = {1: [{'a', 'b', 'c'}],2: [{'a', 'b', 'c'}],3: [{'a', 'b', 'c'}]}
-    >>> house = {1: 'a',2: 'b',3: 'c'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>>if_all_satisfied(graph, house)
+    >>> PreferenceLists = {'1': [{'a', 'b', 'c'}],'2': [{'a', 'b', 'c'}],'3': [{'a', 'b', 'c'}]}
+    >>> house = {'1': 'a','2': 'b','3': 'c'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> if_all_satisfied(graph, house)
     1
 
-    >>> PreferenceLists = {1: [{'b'}],2: [{'a', 'b', 'c'}],3: [{'a', 'b', 'c'}]}
-    >>> house = {1: 'a',2: 'b',3: 'c'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>>if_all_satisfied(graph, house)
+    >>> PreferenceLists = {'1': [{'b'}],'2': [{'a', 'b', 'c'}],'3': [{'a', 'b', 'c'}]}
+    >>> house = {'1': 'a','2': 'b','3': 'c'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> if_all_satisfied(graph, house)
     0
     """
-    jealous = []
     for li in graph:
         if owner_house.keys().__contains__(li) and not graph.has_edge(li, owner_house[li]):
-            jealous.append(li)
-    if not len(jealous):
-        return 1
-    return 0
+            return 0
+    return 1
 
 
 def if_SCC_change_owners(graph, owner_house: dictionary):
     """
-    this func run ove all SCC in the graph and replace the houses owners in this SCC(that every agents in SCC will be satisfied) .
+    this func run over all SCC in the graph and replace the houses owners in this SCC(that every agents in SCC will be satisfied) .
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
     :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
     :return: update graph.
 
-    >>> PreferenceLists = {1: ['b'], 2: ['a']}
-    >>> house = {1: 'a', 2: 'b'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>> if_SCC_change_owners(graph, house)
-    {1: 'b', 2: 'a'}
+    >>> PreferenceLists = {'1': ['b'], '2': ['a']}
+    >>> house = {'1': 'a', '2': 'b'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> graph = if_SCC_change_owners(graph, house)
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{b:{}}, 2:{a:{}}, a:{2:{}}, b:{1:{}}}'
 
-    >>> PreferenceLists = {1: ['b'],2: ['a'],3: ['d'],4: ['c']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>> if_SCC_change_owners(graph, house)
-    {1: 'b', 2: 'a', 3: 'd', 4: 'c'}
+    >>> PreferenceLists = {'1': ['b'],'2': ['a'],'3': ['d'],'4': ['c']}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> graph = if_SCC_change_owners(graph, house)
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{b:{}}, 2:{a:{}}, 3:{d:{}}, 4:{c:{}}, a:{2:{}}, b:{1:{}}, c:{4:{}}, d:{3:{}}}'
     """
     HostHouse = []
     for i in owner_house.values():
@@ -254,6 +246,7 @@ def if_SCC_change_owners(graph, owner_house: dictionary):
                         owner_house[List[(mmm + 1) % len(List)]] = List[mmm]
                         graph.remove_edge(List[mmm], List[mmm - 1])
                         graph.add_edge(List[mmm], List[(mmm + 1) % len(List)])
+    return graph
 
 
 def find_satisfied_SCC(graph, owner_house: dictionary, PreferenceLists: dictionary):
@@ -267,19 +260,21 @@ def find_satisfied_SCC(graph, owner_house: dictionary, PreferenceLists: dictiona
     :return: update graph.
 
 
-    >>> PreferenceLists = {1: ['a', 'b'], 2: ['b', 'a'], 3: ['d'], 4: ['c']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>> find_satisfied_SCC(graph, house, PreferenceLists )
-    {3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+    >>> PreferenceLists = {'1': ['a', 'b'], '2': ['b', 'a'], '3': ['d'], '4': ['c']}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> graph = find_satisfied_SCC(graph, house, PreferenceLists )
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{3:{d:{}}, 4:{c:{}}, c:{3:{}}, d:{4:{}}}'
 
-    >>> PreferenceLists = {1: ['b'], 2: ['a'], 3: [{'c','d'}], 4: [{'c','d'}]}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>> find_satisfied_SCC(graph, house, PreferenceLists )
-    {1: {'b': {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}}
+    >>> PreferenceLists = {'1': ['b'], '2': ['a'], '3': [{'c','d'}], '4': [{'c','d'}]}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> graph = find_satisfied_SCC(graph, house, PreferenceLists )
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{b:{}}, 2:{a:{}}, a:{1:{}}, b:{2:{}}}'
 
     """
     change = 1
@@ -334,20 +329,21 @@ def connect_jealous_agents_to_there_best(jealous: list, graph):
     :return: update graph.
 
 
-    >>> PreferenceLists = {1: ['a', 'b'], 2: ['b', 'a'], 3: ['d'], 4: ['c']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>> connect_jealous_agents_to_there_best([ 3, 4, 'd', 'c'], graph)
-    {1: {'a': {}}, 'a': {1: {}}, 2: {'b': {}}, 'b': {2: {}}, 3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+    >>> PreferenceLists = {'1': ['a', 'b'], '2': ['b', 'a'], '3': ['d'], '4': ['c']}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> graph = connect_jealous_agents_to_there_best([ '3', '4', 'd', 'c'], graph)
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{a:{}}, 2:{b:{}}, 3:{d:{}}, 4:{c:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}, d:{4:{}}}'
 
-    >>> PreferenceLists = {1: [{'b','c','d'}], 2: [{'a','c','d'}], 3: [{'c','d'}], 4: [{'c','d'}]}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> graph = nx.DiGraph()
-    >>> graph = make_graph_begin(PreferenceLists, house, graph)
-    >>> connect_jealous_agents_to_there_best([ 1, 2, 'b', 'a'], graph)
-    {1: {'b': {}}, 'c': {3: {}}, 'd': {4: {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}, 3: {'c': {}, 'd': {}},
-     4: {'c': {}, 'd': {}}}
+    >>> PreferenceLists = {'1': [{'b','c','d'}], '2': [{'a','c','d'}], '3': [{'c','d'}], '4': [{'c','d'}]}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
+    >>> graph = make_graph_begin(PreferenceLists, house)
+    >>> graph = connect_jealous_agents_to_there_best([ '3', '4', 'd', 'c'], graph)
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{b:{}, c:{}, d:{}}, 2:{a:{}, c:{}, d:{}}, 3:{c:{}}, 4:{c:{}}, a:{1:{}}, b:{2:{}}, c:{3:{}}, d:{4:{}}}'
     """
     # O(n)
     # run over all the jealous agents.
@@ -375,19 +371,31 @@ def connect_satisfied_agents_to_there_best(graph, owner_house: dictionary, label
     to labeld.
     :return: update graph.
 
-    >>> PreferenceLists = {1: ['a', 'b'], 2: ['b', 'a'], 3: ['d'], 4: ['c']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+
+    >>> PreferenceLists = {'1': ['a', 'b'], '2': ['b', 'a'], '3': ['d'], '4': ['c']}
+    >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
     >>> graph = nx.DiGraph()
-    >>> graph = {3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
-    >>> connect_satisfied_agents_to_there_best(graph, house, [ 3, 4, 'd', 'c'])
-    {3: {'d': {}}, 'd': {4: {}}, 4: {'c': {}}, 'c': {3: {}}}
+    >>> graph.add_edge('3','d')
+    >>> graph.add_edge('d','4')
+    >>> graph.add_edge('4','c')
+    >>> graph.add_edge('c','3')
+    >>> graph = connect_satisfied_agents_to_there_best(graph, house, [ '3', '4', 'd', 'c'])
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{3:{d:{}}, 4:{c:{}}, c:{3:{}}, d:{4:{}}}'
+
 
     >>> PreferenceLists = {1: [{'b','c','d'}], 2: [{'a','c','d'}], 3: [{'c','d'}], 4: [{'c','d'}]}
     >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
     >>> graph = nx.DiGraph()
-    >>> graph = {1: {'b': {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}}
-    >>> connect_satisfied_agents_to_there_best(graph, house, [ 1, 2, 'b', 'a'])
-    {1: {'b': {}}, 'b': {2: {}}, 2: {'a': {}}, 'a': {1: {}}}
+    >>> graph.add_edge('1','b')
+    >>> graph.add_edge('b','2')
+    >>> graph.add_edge('2','a')
+    >>> graph.add_edge('a','1')
+    >>> graph = connect_satisfied_agents_to_there_best(graph, house, [ '1', '2', 'b', 'a'])
+    >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
+    >>> stringify(graph)
+    '{1:{b:{}}, 2:{a:{}}, a:{1:{}}, b:{2:{}}}'
     """
 
     un_labeled = []
@@ -444,55 +452,133 @@ def connect_satisfied_agents_to_there_best(graph, owner_house: dictionary, label
     return graph
 
 
+def get_all_values(owner_house: dictionary, PreferenceLists: dictionary):
+    """
+    O(n^2*log(n))
+    :param owner_house:dictionary that connect between the houses to there owners.
+    keys = agent, values = houses.
+    :param PreferenceLists:dictionary with agent's keys and the houses values with number how much the agent appraiser the houses.
+    keys = agent, values = houses with number.
+    :return:call print_SCCs func with order PreferenceLists and owner houses.
+
+    >>> PreferenceLists = {1: {'a': 3, 'b': 3}, 2: {'a': 5, 'b': 1}}
+    >>> house = {1: 'a', 2: 'b'}
+    >>> get_all_values(house, PreferenceLists)
+    {1: [['a', 'b']], 2: ['a', 'b']}
+
+    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'d':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> get_all_values(house, PreferenceLists)
+    {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['d']}
+
+    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'a':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> get_all_values(house, PreferenceLists)
+    {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['a']}
+    """
+    ans = {}
+    List = []
+    ListName = []
+    # run over all the agents.
+    for x in PreferenceLists:
+        # sort the preferences by the values that get all houses by this agent/
+        sorted_x = sorted(PreferenceLists[x].items(), key=operator.itemgetter(1), reverse=True)
+        ListName.append(x)
+        List.append(sorted_x)
+    # run over all sorted preferences.
+    for i in range(len(List)):
+        ListAns = []
+        ListAns.append(List[i][0][0])
+        for j in range(len(List[i]) - 1):
+            # if the house i add to the list have same value to the last combine them to one list.
+            if List[i][j][1].__eq__(List[i][j + 1][1]):
+                if len(ListAns) > 0:
+                    x = ListAns.pop()
+                if type(x) is list:
+                    x.append(List[i][j + 1][0])
+                    ListAns.append(x)
+                else:
+                    ListAns.append([x, List[i][j + 1][0]])
+            else:
+                ListAns.append(List[i][j + 1][0])
+        # ListAns.reverse()
+        ans[ListName[i]] = ListAns
+    return ans
+
 def print_SCCs(owner_house: dictionary, PreferenceLists: dictionary):
     """
     the main fun that call all the func and return the owner houses after do this algo.
     :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
     :param PreferenceLists:dictionary with agent's keys and the values are order list houses from top to low choices.
     :return:owner houses after this algo.
-    >>> PreferenceListsValues = {1: {'a': 3, 'b': 3}, 2: {'a': 5, 'b': 1}}
     >>> PreferenceLists = {1: [{'a', 'b'}], 2: ['a', 'b']}
     >>> house = {1: 'a', 2: 'b'}
     >>> print_SCCs(house, PreferenceLists)
     {1: 'b', 2: 'a'}
 
+    >>> PreferenceLists = {1: {'a': 3, 'b': 3}, 2: {'a': 5, 'b': 1}}
+    >>> house = {1: 'a', 2: 'b'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a'}
 
-    >>> PreferenceListsValues = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'d':3}}
     >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['d']}
     >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
     >>> print_SCCs(house, PreferenceLists)
     {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
 
-    >>> PreferenceListsValues = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'a':3}}
+    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'d':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+
     >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['a']}
     >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
     >>> print_SCCs(house, PreferenceLists)
     {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
 
+    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'a':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
 
-    >>> PreferenceListsValues = {1: {'b': 3}, 2: {'a': 5}, 3:{'c':9}}
     >>> PreferenceLists = {1: ['b'], 2: ['a'], 3: ['c']}
     >>> house = {1: 'a', 2: 'b', 3: 'c'}
     >>> print_SCCs(house, PreferenceLists)
     {1: 'b', 2: 'a', 3: 'c'}
 
-    >>> PreferenceListsValues = {1: {'g': 3, 'c': 3}, 2: {'f': 2, 'g': 2, 'd': 2}, 3: {'b': 9, 'e':9, 'c': 3}, 4: {'e': 1}, 5: {'d': 5},6: {'b': 1, 'f': 0}, 7:{'a':3}}
+    >>> PreferenceLists = {1: {'b': 3}, 2: {'a': 5}, 3:{'c':9}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a', 3: 'c'}
+
     >>> PreferenceLists = {1: [{'g', 'c'}], 2: [{'f', 'g', 'd'}], 3: [{'b', 'e'}, 'c'], 4: ['e'], 5: ['d'], 6: ['b', 'f'], 7: ['a']}
     >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
     >>> print_SCCs(house, PreferenceLists)
     {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
 
+    >>> PreferenceLists = {1: {'g': 3, 'c': 3}, 2: {'f': 2, 'g': 2, 'd': 2}, 3: {'b': 9, 'e':9, 'c': 3}, 4: {'e': 1}, 5: {'d': 5},6: {'b': 1, 'f': 0}, 7:{'a':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
 
-
-    >>> PreferenceListsValues = {1: {'a': 3, 'c': 3}, 2: {'a': 2, 'b': 2, 'd': 2}, 3: {'c': 9, 'e':9}, 4: {'c': 1}, 5: {'a': 5, 'f': 5},6: {'b': 1}}
     >>> PreferenceLists = {1: [{'a', 'c'}],2: [{'a', 'b', 'd'}], 3: [{'c', 'e'}], 4: ['c'], 5: [{'a', 'f'}], 6: ['b']}
     >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
     >>> print_SCCs(house, PreferenceLists)
     {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
 
+    >>> PreferenceLists = {1: {'a': 3, 'c': 3}, 2: {'a': 2, 'b': 2, 'd': 2}, 3: {'c': 9, 'e':9}, 4: {'c': 1}, 5: {'a': 5, 'f': 5},6: {'b': 1}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
+
     """
-    graph = nx.DiGraph()
-    graph = make_graph_begin(PreferenceLists, owner_house, graph)
+
+    for key, value in PreferenceLists.items():
+        if isinstance(value, Dict):
+            PreferenceLists = get_all_values(owner_house, PreferenceLists)
+            break
+
+    graph = make_graph_begin(PreferenceLists, owner_house)
     # run until there is no nodes in the graph
     while len(graph) != 0:
         jealous = []
@@ -509,8 +595,8 @@ def print_SCCs(owner_house: dictionary, PreferenceLists: dictionary):
                 jealous.append(li)
 
         # if no agent in the graph jealous return.
-        if not jealous:
-            return owner_house
+        # if not jealous:
+        #     return owner_house
 
         graph = find_satisfied_SCC(graph, owner_house, PreferenceLists)
         # if_satisfied_and_point_only_to_himself(graph, owner_house, PreferenceLists, jealous)
@@ -523,12 +609,15 @@ def print_SCCs(owner_house: dictionary, PreferenceLists: dictionary):
         # connect satisfied people to label agent.
         graph = connect_satisfied_agents_to_there_best(graph, owner_house, labeled)
         # Change houses owners in SCC.
-        if_SCC_change_owners(graph, owner_house)
+        graph = if_SCC_change_owners(graph, owner_house)
 
     return owner_house
 
+
 if __name__ == '__main__':
+
     import doctest
+    doctest.run_docstring_examples(stringify,  globals())
     doctest.run_docstring_examples(make_graph_begin, globals())
     doctest.run_docstring_examples(make_graph, globals())
     doctest.run_docstring_examples(if_SCC_change_owners, globals())
@@ -536,9 +625,15 @@ if __name__ == '__main__':
     doctest.run_docstring_examples(connect_satisfied_agents_to_there_best, globals())
     doctest.run_docstring_examples(connect_jealous_agents_to_there_best, globals())
     doctest.run_docstring_examples(find_satisfied_SCC, globals())
-    # doctest.run_docstring_examples(if_all_satisfied, globals())
+    doctest.run_docstring_examples(if_all_satisfied, globals())
     doctest.run_docstring_examples(transpose_graph, globals())
     doctest.run_docstring_examples(get_all_values, globals())
+
+
+
+
+
+
 
 
 
