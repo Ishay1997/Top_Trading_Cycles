@@ -444,7 +444,7 @@ class TestFinal2022(unittest.TestCase):
                          6: 'f',
                          7: 'g'}
 
-        makeGraph = work2022.make_graph_begin({1: [{'a', 'b'}], 2: [{'a', 'b'}]}, {1: 'a', 2: 'b'}, nx.DiGraph())
+        makeGraph = work2022.make_graph_begin({1: [{'a', 'b'}], 2: [{'a', 'b'}]}, {1: 'a', 2: 'b'})
         graph = nx.DiGraph()
         graph.add_node(1)
         graph.add_node(2)
@@ -473,7 +473,7 @@ class TestFinal2022(unittest.TestCase):
                          6: 'f',
                          7: 'g'}
 
-        makeGraph = work2022.make_graph_begin(PreferenceLists, house,  nx.DiGraph())
+        makeGraph = work2022.make_graph_begin(PreferenceLists, house)
         graph = nx.DiGraph()
         for i in range(7):
             graph.add_node(i+1)
@@ -507,7 +507,7 @@ class TestFinal2022(unittest.TestCase):
 
         self.assertTrue(graph.__eq__(newGraph))
 
-        graph = work2022.make_graph_begin(PreferenceLists, house, nx.DiGraph())
+        graph = work2022.make_graph_begin(PreferenceLists, house)
         work2022.connect_jealous_agents_to_there_best([1, 2, 3, 4, 5, 6, 7], graph)
         self.assertTrue(graph.__eq__({1: {'c': {}}, 'g': {7: {}}, 'c': {3: {}}, 2: {'d': {}}, 'f': {6: {}}, 'd': {4: {}}, 3: {'b': {}}, 'b': {2: {}}, 'e': {5: {}}, 4: {'e': {}}, 5: {'d': {}}, 6: {'b': {}}, 7: {'a': {}}, 'a': {1: {}}}))
 
