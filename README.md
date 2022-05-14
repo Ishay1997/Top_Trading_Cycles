@@ -17,5 +17,6 @@ for full tests press [here](https://github.com/Ishay1997/work_2022/blob/main/tes
 
 <img width="309" alt="houses" src="https://user-images.githubusercontent.com/74185897/168448356-e7e9ad13-0087-4eba-a45c-9d3e2712a7ca.PNG">
 In this example A will get B house ,B will get C house and C will get A house.\
+
 This is eazy example for understand ehat the algo does.
 
