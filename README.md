@@ -11,3 +11,4 @@ This algoritem deals with the redistribution of objects between people so that e
  to the object he had before (in the least good case he came out with an object equivalent to what he had at the beginning)
 
 The output is a list with all person and the object he get.
+for explanation of the algoretem press [here](https://github.com/Ishay1997/work_2022/blob/main/Top%20Trading%20Algoritem%20explanation%20.docx)
