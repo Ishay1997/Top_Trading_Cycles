@@ -1,3 +1,13 @@
+#!python3
+
+"""
+Find the Top tranding cycle houses allocation with indifference .
+Based on:
+Daniela Saban and Jay Sethuraman.
+["House allocation with indifferences: a generalization and a unified view"](https://dl.acm.org/doi/abs/10.1145/2492002.2482574)
+Programmer: Ishay Levy.
+Since: 2022-05
+"""
 import fairpy
 import operator
 import dictionary as dictionary
@@ -9,6 +19,135 @@ from typing import Dict
 
 # the Kosaraju’s algorithm i copy from https://www.geeksforgeeks.org/strongly-connected-components/
 
+def print_SCCs(owner_house: dictionary, PreferenceLists: dictionary):
+    """
+    the main fun that call all the func and return the owner houses after do this algo.
+    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
+    :param PreferenceLists:dictionary with agent's keys and the values are order list houses from top to low choices.
+    :return:owner houses after this algo.
+
+
+    >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['d']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+
+    >>> PreferenceLists = {1: [{'a', 'b'}], 2: ['a', 'b']}
+    >>> house = {1: 'a', 2: 'b'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a'}
+
+    >>> PreferenceLists = {1: {'a': 3, 'b': 3}, 2: {'a': 5, 'b': 1}}
+    >>> house = {1: 'a', 2: 'b'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a'}
+
+    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'d':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+
+    >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['a']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
+
+    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'a':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
+
+    >>> PreferenceLists = {1: ['b'], 2: ['a'], 3: ['c']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a', 3: 'c'}
+
+    >>> PreferenceLists = {1: {'b': 3}, 2: {'a': 5}, 3:{'c':9}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'b', 2: 'a', 3: 'c'}
+
+    >>> PreferenceLists = {1: [{'g', 'c'}], 2: [{'f', 'g', 'd'}], 3: [{'b', 'e'}, 'c'], 4: ['e'], 5: ['d'], 6: ['b', 'f'], 7: ['a']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
+
+    >>> PreferenceLists = {1: {'g': 3, 'c': 3}, 2: {'f': 2, 'g': 2, 'd': 2}, 3: {'b': 9, 'e':9, 'c': 3}, 4: {'e': 1}, 5: {'d': 5},6: {'b': 1, 'f': 0}, 7:{'a':3}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
+
+    >>> PreferenceLists = {1: [{'a', 'c'}],2: [{'a', 'b', 'd'}], 3: [{'c', 'e'}], 4: ['c'], 5: [{'a', 'f'}], 6: ['b']}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
+
+    >>> PreferenceLists = {1: {'a': 3, 'c': 3}, 2: {'a': 2, 'b': 2, 'd': 2}, 3: {'c': 9, 'e':9}, 4: {'c': 1}, 5: {'a': 5, 'f': 5},6: {'b': 1}}
+    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
+    >>> print_SCCs(house, PreferenceLists)
+    {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
+
+
+
+    """
+
+
+
+    for key, value in PreferenceLists.items():
+        if isinstance(value, Dict):
+            # this func change the data from rank with numbers to rank with order.
+            PreferenceLists = get_all_values(owner_house, PreferenceLists)
+            break
+
+    graph = make_graph_begin(PreferenceLists, owner_house)
+    # ----------------------------------------------1------------------------------------------------------------------
+    # Repeat until no agent is left.
+    while len(graph) != 0:
+        jealous = []
+        # ------------------------------------------1(a)--------------------------------------------------------------
+        # connect between agents to there first
+        # prefer object in the graph and also between the object to there owners.
+        graph = make_graph(PreferenceLists, graph)
+
+        # # if all agents in the graph are satisfied return the owner_house.
+        # if if_all_satisfied(graph, owner_house):
+        #     return owner_house
+
+        # -------------------------------------------1(b)------------------------------------------------------------
+
+        # if there is final scc remove all the node in this scc and update the graph and repeat.
+        # over this until there is no final scc in the graph.
+        graph = find_satisfied_SCC(graph, owner_house, PreferenceLists)
+        # ------------------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------------------------
+
+        # ---------------------------------------------2--------------------------------------------------------------
+        # keep all the jealous agens in list.
+        for li in graph:
+            if owner_house.keys().__contains__(li) and not graph.has_edge(li, owner_house[li]):
+                jealous.append(li)
+
+        labeled = []
+        # ---------------------------------------------2(1.a)----------------------------------------------------------
+        # connect jealous people to the min house they have edge to.
+        graph = connect_jealous_agents_to_there_best(jealous, graph)
+        # -------------------------------------------------------------------------------------------------------------
+
+        for je in jealous:
+            labeled.append(je)
+            labeled.append(owner_house[je])
+        # connect satisfied people to the closest label agent.
+        # ---------------------------------------------2(1.b)----------------------------------------------------------
+        graph = connect_satisfied_agents_to_there_best(graph, owner_house, labeled)
+
+        # Change houses owners in SCC.
+        graph = if_SCC_change_owners(graph, owner_house)
+
+        # ------------------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------------------------
+
+    return owner_house
+
 def stringify(d):
     """
     Returns a canonical string representation of the given dict,
@@ -18,7 +157,6 @@ def stringify(d):
     '{a:1, b:2, c:{d:3, e:4}}'
     """
     d2 = {}
-    # {1: {'c': {}, 'b': {}, 'a': {}}, 'c': {3: {}}, 'b': {2: {}}, 'a': {1: {}}, 2: {'c': {}, 'b': {}, 'a': {}}, 3: {'c': {}, 'b': {}, 'a': {}}}
     for k, v in d.items():
         if isinstance(v, dict):
             d2[k] = stringify(v)
@@ -29,6 +167,7 @@ def stringify(d):
 
 def make_graph(PreferenceLists: dictionary, graph):
     """
+    part 1(a)
     O(n^2)
     Update all the edges between agents and houses,with the PreferenceLists.
     :param PreferenceLists:dictionary that contain a order list houses from top to low choices prefer for all agents.
@@ -196,6 +335,7 @@ def if_all_satisfied(graph, owner_house: dictionary):
 
 def if_SCC_change_owners(graph, owner_house: dictionary):
     """
+    part 2(1.b)
     this func run over all SCC in the graph and replace the houses owners in this SCC(that every agents in SCC will be satisfied) .
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
     :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
@@ -251,8 +391,9 @@ def if_SCC_change_owners(graph, owner_house: dictionary):
 
 def find_satisfied_SCC(graph, owner_house: dictionary, PreferenceLists: dictionary):
     """
+    part 1(b)
     find SCC that all there agents are satisfied and point only to this SCC, if there is this SCC remove all the
-    agents and houses that find in this SCC from the graph.apdate all the connected between the agents and houses and do
+    agents and houses that find in this SCC from the graph.update all the connected between the agents and houses and do
     this again until there is no END SCC.
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
     :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
@@ -271,7 +412,7 @@ def find_satisfied_SCC(graph, owner_house: dictionary, PreferenceLists: dictiona
     >>> PreferenceLists = {'1': ['b'], '2': ['a'], '3': [{'c','d'}], '4': [{'c','d'}]}
     >>> house = {'1': 'a', '2': 'b', '3': 'c', '4': 'd'}
     >>> graph = make_graph_begin(PreferenceLists, house)
-    >>> graph = find_satisfied_SCC(graph, house, PreferenceLists )
+    >>> graph  = find_satisfied_SCC(graph, house, PreferenceLists )
     >>> graph = nx.to_dict_of_dicts(graph, edge_data=None)
     >>> stringify(graph)
     '{1:{b:{}}, 2:{a:{}}, a:{1:{}}, b:{2:{}}}'
@@ -315,12 +456,15 @@ def find_satisfied_SCC(graph, owner_house: dictionary, PreferenceLists: dictiona
                         if flag == 1:
                             for i in List:
                                 graph.remove_node(i)
+                            change = 1
                             graph = make_graph(PreferenceLists, graph)
     return graph
 
 
 def connect_jealous_agents_to_there_best(jealous: list, graph):
     """
+    part 1(a)
+    part 2(1.a)
     # O(n^2)
     this func keep only one edge between all jealous agents to the house(the house that have already edge and also
     the house has the min "aski" value).
@@ -363,6 +507,7 @@ def connect_jealous_agents_to_there_best(jealous: list, graph):
 
 def connect_satisfied_agents_to_there_best(graph, owner_house: dictionary, labeled: list):
     """
+    part 2(1.b)
     O(n^2)
      keep only one edge between all satisfied agents to labeled agent.
     :param graph:diGraph with agents and houses nodes and edges that connect between them.
@@ -505,113 +650,7 @@ def get_all_values(owner_house: dictionary, PreferenceLists: dictionary):
         ans[ListName[i]] = ListAns
     return ans
 
-def print_SCCs(owner_house: dictionary, PreferenceLists: dictionary):
-    """
-    the main fun that call all the func and return the owner houses after do this algo.
-    :param owner_house:dictionary that connect between the houses to there owners.keys = agent, values = houses.
-    :param PreferenceLists:dictionary with agent's keys and the values are order list houses from top to low choices.
-    :return:owner houses after this algo.
-    >>> PreferenceLists = {1: [{'a', 'b'}], 2: ['a', 'b']}
-    >>> house = {1: 'a', 2: 'b'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'b', 2: 'a'}
 
-    >>> PreferenceLists = {1: {'a': 3, 'b': 3}, 2: {'a': 5, 'b': 1}}
-    >>> house = {1: 'a', 2: 'b'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'b', 2: 'a'}
-
-    >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['d']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-
-    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'d':3}}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-
-    >>> PreferenceLists = {1: ['b', 'a'], 2: ['c', 'b'], 3: ['d', 'c'], 4: ['a']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
-
-    >>> PreferenceLists = {1: {'b': 3, 'a': 2}, 2: {'c': 5, 'b': 1}, 3:{'d':9, 'c':8},4:{'a':3}}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'b', 2: 'c', 3: 'd', 4: 'a'}
-
-    >>> PreferenceLists = {1: ['b'], 2: ['a'], 3: ['c']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'b', 2: 'a', 3: 'c'}
-
-    >>> PreferenceLists = {1: {'b': 3}, 2: {'a': 5}, 3:{'c':9}}
-    >>> house = {1: 'a', 2: 'b', 3: 'c'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'b', 2: 'a', 3: 'c'}
-
-    >>> PreferenceLists = {1: [{'g', 'c'}], 2: [{'f', 'g', 'd'}], 3: [{'b', 'e'}, 'c'], 4: ['e'], 5: ['d'], 6: ['b', 'f'], 7: ['a']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
-
-    >>> PreferenceLists = {1: {'g': 3, 'c': 3}, 2: {'f': 2, 'g': 2, 'd': 2}, 3: {'b': 9, 'e':9, 'c': 3}, 4: {'e': 1}, 5: {'d': 5},6: {'b': 1, 'f': 0}, 7:{'a':3}}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'g', 2: 'f', 3: 'c', 4: 'e', 5: 'd', 6: 'b', 7: 'a'}
-
-    >>> PreferenceLists = {1: [{'a', 'c'}],2: [{'a', 'b', 'd'}], 3: [{'c', 'e'}], 4: ['c'], 5: [{'a', 'f'}], 6: ['b']}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
-
-    >>> PreferenceLists = {1: {'a': 3, 'c': 3}, 2: {'a': 2, 'b': 2, 'd': 2}, 3: {'c': 9, 'e':9}, 4: {'c': 1}, 5: {'a': 5, 'f': 5},6: {'b': 1}}
-    >>> house = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f'}
-    >>> print_SCCs(house, PreferenceLists)
-    {1: 'a', 2: 'd', 3: 'e', 4: 'c', 5: 'f', 6: 'b'}
-
-    """
-
-    for key, value in PreferenceLists.items():
-        if isinstance(value, Dict):
-            PreferenceLists = get_all_values(owner_house, PreferenceLists)
-            break
-
-    graph = make_graph_begin(PreferenceLists, owner_house)
-    # run until there is no nodes in the graph
-    while len(graph) != 0:
-        jealous = []
-
-        graph = make_graph(PreferenceLists, graph)
-
-        if if_all_satisfied(graph, owner_house):
-            return owner_house
-
-        graph = find_satisfied_SCC(graph, owner_house, PreferenceLists)
-        # keep all the jealous agens in list.
-        for li in graph:
-            if owner_house.keys().__contains__(li) and not graph.has_edge(li, owner_house[li]):
-                jealous.append(li)
-
-        # if no agent in the graph jealous return.
-        # if not jealous:
-        #     return owner_house
-
-        graph = find_satisfied_SCC(graph, owner_house, PreferenceLists)
-        # if_satisfied_and_point_only_to_himself(graph, owner_house, PreferenceLists, jealous)
-        labeled = []
-        # connect jealous people to the min house they have edge to.
-        graph = connect_jealous_agents_to_there_best(jealous, graph)
-        for je in jealous:
-            labeled.append(je)
-            labeled.append(owner_house[je])
-        # connect satisfied people to label agent.
-        graph = connect_satisfied_agents_to_there_best(graph, owner_house, labeled)
-        # Change houses owners in SCC.
-        graph = if_SCC_change_owners(graph, owner_house)
-
-    return owner_house
 
 
 if __name__ == '__main__':
